@@ -14,7 +14,7 @@ func Test_newRotatorCreatesAccessibleFile(t *testing.T) {
 		testFullPath = filepath.Join(testPath, testFilename)
 		testPerms    = fs.FileMode(0755)
 	)
-	r, err := New(testPath, testFilename, 1, testPerms, 10)
+	r, err := New(testPath, testFilename, 1, testPerms, 10, false)
 	if err != nil {
 		t.Errorf("Test_newRotatorCreatesFile | %s failed with error: %s", "newRotator()", err)
 	}
@@ -39,7 +39,7 @@ func Test_newRotatorCanWrite(t *testing.T) {
 		testFullPath = filepath.Join(testPath, testFilename)
 		testPerms    = fs.FileMode(0755)
 	)
-	r, err := New(testPath, testFilename, 8, testPerms, 10)
+	r, err := New(testPath, testFilename, 8, testPerms, 10, false)
 	if err != nil {
 		t.Errorf("Test_newRotatorCanWrite | %s failed with error: %s", "newRotator()", err)
 	}
@@ -64,7 +64,7 @@ func Test_RemoveUnnecessaryFiles(t *testing.T) {
 		expectedFileCount       = int(filesToKeep) + 1
 		filePrefix              = "Test_RemoveUnnecessaryFiles"
 	)
-	rotator, err := New(".", filePrefix+".log", 100, 0600, filesToKeep)
+	rotator, err := New(".", filePrefix+".log", 100, 0600, filesToKeep, false)
 	if err != nil {
 		t.Fatalf("could not create new rotator: %s", err.Error())
 	}
