@@ -13,13 +13,13 @@ import (
 	"log"
 	"sync"
 
-	rotator "github.com/KaiserWerk/go-log-rotator"
+	logrotator "github.com/KaiserWerk/go-log-rotator"
 )
 
 func main() {
 	// this creates a new Rotator with a maximum file size of 10KB and 3 rotated files are to be kept on disk
 	// the default logger does NOT take care of thread-safe writes, so supply 'true' as last parameter
-	rotator, _ := rotator.New(".", "standard-test.log", 10<<10, 0644, 3, true)
+	rotator, _ := logrotator.New(".", "standard-test.log", 10<<10, 0644, 3, true)
 
 	logger := log.New(rotator, "", 0)
 
@@ -61,7 +61,7 @@ package main
 import (
 	"sync"
 
-	rotator "github.com/KaiserWerk/go-log-rotator"
+	logrotator "github.com/KaiserWerk/go-log-rotator"
 
 	"github.com/sirupsen/logrus"
 )
@@ -69,7 +69,7 @@ import (
 func main() {
 	// this creates a new Rotator with a maximum file size of 2MB and 15 rotated files are to be kept on disk
 	// logrus DOES take care of thread-safe writes, so supply 'false' as last parameter to avoid unnecessary overhead
-	rotator, _ := rotator.New(".", "logrus-test.log", 2<<20, 0644, 15, false)
+	rotator, _ := logrotator.New(".", "logrus-test.log", 2<<20, 0644, 15, false)
 
 	logger := logrus.New()
 	logger.SetOutput(rotator) // use the rotator here
