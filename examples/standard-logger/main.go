@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"sync"
 
@@ -40,8 +39,6 @@ func main() {
 	}(&wg)
 
 	wg.Wait()
-
-	fmt.Println("Writes:", rotator.WriteCount())
 
 	// there should be 4 rotator files by now
 }

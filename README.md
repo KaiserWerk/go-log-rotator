@@ -50,8 +50,6 @@ func main() {
 
 	wg.Wait()
 
-	fmt.Println("Writes:", rotator.WriteCount())
-
 	// there should be 4 rotator files by now
 }
 ```

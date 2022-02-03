@@ -28,7 +28,6 @@ type Rotator struct {
 	permissions os.FileMode
 	mut         sync.Mutex
 	useMut      bool
-	writeCount  uint64
 }
 
 // New returns a new rotator prepared to be written to. The rotator is NOT thread-safe by default, since
@@ -91,7 +90,6 @@ func (r *Rotator) Write(data []byte) (int, error) {
 		r.mut.Lock()
 		defer r.mut.Unlock()
 	}
-	r.writeCount++
 
 	if r.currentSize+uint64(len(data)) > r.maxSize {
 		if r.writer != nil {
@@ -170,10 +168,6 @@ func (r *Rotator) removeUnnecessaryFiles() error {
 	}
 
 	return nil
-}
-
-func (r *Rotator) WriteCount() uint64 {
-	return r.writeCount
 }
 
 // Close closes the io.Writer of the Rotator.
