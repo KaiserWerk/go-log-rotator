@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	timeFormat = "2006-01-02T15-04-05"
+	timeFormat = "2006-01-02T15-04-05.000000"
 )
 
 // Rotator represents a struct responsible for writing into a log file while
@@ -28,6 +28,7 @@ type Rotator struct {
 	permissions os.FileMode
 	mut         sync.Mutex
 	useMut      bool
+	writeCount  uint64
 }
 
 // New returns a new rotator prepared to be written to. The rotator is NOT thread-safe by default, since
@@ -57,21 +58,25 @@ func New(path, filename string, maxSize uint64, perms fs.FileMode, filesToKeep u
 		return nil, err
 	}
 
-	if stat, err := os.Stat(filepath.Join(r.path, r.filename)); err != nil && !errors.Is(err, fs.ErrNotExist) {
-		if stat.Size() > int64(r.maxSize) {
+	if stat, err := os.Stat(filepath.Join(r.path, r.filename)); err == nil {
+		r.currentSize = uint64(stat.Size())
+		if size := stat.Size(); size > int64(r.maxSize) {
 			if r.writer != nil {
 				r.writer.Close()
 			}
-			err = os.Rename(filepath.Join(r.path, r.filename), filepath.Join(r.path, r.determineNextFilename()))
+			err = os.Rename(filepath.Join(r.path, r.filename), r.determineNextFilename())
 			if err != nil {
 				return nil, err
 			}
-		} else {
-			r.currentSize = uint64(stat.Size())
+			r.currentSize = 0
+		}
+	} else {
+		if errors.Is(err, fs.ErrExist) {
+			return nil, err
 		}
 	}
 
-	fh, err := os.OpenFile(filepath.Join(r.path, r.filename), os.O_APPEND|os.O_RDWR|os.O_CREATE, perms)
+	fh, err := os.OpenFile(filepath.Join(r.path, r.filename), os.O_APPEND|os.O_RDWR|os.O_CREATE, r.permissions)
 	if err != nil {
 		return nil, err
 	}
@@ -86,13 +91,11 @@ func (r *Rotator) Write(data []byte) (int, error) {
 		r.mut.Lock()
 		defer r.mut.Unlock()
 	}
+	r.writeCount++
 
 	if r.currentSize+uint64(len(data)) > r.maxSize {
 		if r.writer != nil {
-			err := r.writer.Close()
-			if err != nil {
-				return 0, err
-			}
+			r.writer.Close()
 		}
 
 		err := r.removeUnnecessaryFiles()
@@ -100,7 +103,7 @@ func (r *Rotator) Write(data []byte) (int, error) {
 			return 0, nil
 		}
 
-		err = os.Rename(filepath.Join(r.path, r.filename), filepath.Join(r.path, r.determineNextFilename()))
+		err = os.Rename(filepath.Join(r.path, r.filename), r.determineNextFilename())
 		if err != nil {
 			return 0, err
 		}
@@ -111,6 +114,7 @@ func (r *Rotator) Write(data []byte) (int, error) {
 		r.writer = fh
 		r.currentSize = 0
 	}
+	r.currentSize += uint64(len(data))
 
 	return r.writer.Write(data)
 }
@@ -122,6 +126,10 @@ func (r *Rotator) determineNextFilename() string {
 
 // removeUnnecessaryFiles removes old files and keeps r.filesToKeep files
 func (r *Rotator) removeUnnecessaryFiles() error {
+	if r.filesToKeep == 0 {
+		return nil
+	}
+
 	files, err := filepath.Glob(filepath.Join(r.path, r.filename) + ".*")
 	if err != nil {
 		return err
@@ -145,7 +153,14 @@ func (r *Rotator) removeUnnecessaryFiles() error {
 		return dtI.Before(dtJ)
 	})
 
-	filesToRemove := files[:len(files)-int(r.filesToKeep)]
+	len := len(files)
+	keep := int(r.filesToKeep)
+
+	if keep >= len {
+		return nil
+	}
+
+	filesToRemove := files[:len-keep]
 
 	for _, f := range filesToRemove {
 		err = os.Remove(filepath.Join(r.path, f))
@@ -155,6 +170,10 @@ func (r *Rotator) removeUnnecessaryFiles() error {
 	}
 
 	return nil
+}
+
+func (r *Rotator) WriteCount() uint64 {
+	return r.writeCount
 }
 
 // Close closes the io.Writer of the Rotator.

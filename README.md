@@ -10,35 +10,39 @@ Standard package logger:
 package main
 
 import (
+	"fmt"
 	"log"
 	"sync"
 
-	logrotator "github.com/KaiserWerk/go-log-rotator"
+	rotator "github.com/KaiserWerk/go-log-rotator"
 )
 
 func main() {
 	// this creates a new Rotator with a maximum file size of 10KB and 3 rotated files are to be kept on disk
 	// the default logger does NOT take care of thread-safe writes, so supply 'true' as last parameter
-	rotator, _ := logrotator.New(".", "standard-test.log", 10<<10, 0644, 3, true)
-
+	rotator, err := rotator.New(".", "standard-logger.log", 10<<10, 0644, 3, true)
+	if err != nil {
+		log.Fatalf("could not create rotator: %s", err.Error())
+	}
+	defer rotator.Close()
 	logger := log.New(rotator, "", 0)
 
 	var wg sync.WaitGroup
 	wg.Add(3)
 	go func(w *sync.WaitGroup) {
-		for i := 0; i < 100; i++ {
+		for i := 0; i < 3000; i++ {
 			logger.Println("Hello World!")
 		}
 		w.Done()
 	}(&wg)
 	go func(w *sync.WaitGroup) {
-		for i := 0; i < 100; i++ {
+		for i := 0; i < 3000; i++ {
 			logger.Println("Goodbye...")
 		}
 		w.Done()
 	}(&wg)
 	go func(w *sync.WaitGroup) {
-		for i := 0; i < 100; i++ {
+		for i := 0; i < 3000; i++ {
 			logger.Println("How's it going?")
 		}
 		w.Done()
@@ -46,10 +50,9 @@ func main() {
 
 	wg.Wait()
 
-	// done? close it
-	_ = rotator.Close()
+	fmt.Println("Writes:", rotator.WriteCount())
 
-	// the log file 'standard-test.log' should now have 300 entries
+	// there should be 4 rotator files by now
 }
 ```
 
@@ -59,17 +62,21 @@ Logrus:
 package main
 
 import (
+	"log"
 	"sync"
 
-	logrotator "github.com/KaiserWerk/go-log-rotator"
+	rotator "github.com/KaiserWerk/go-log-rotator"
 
 	"github.com/sirupsen/logrus"
 )
 
 func main() {
-	// this creates a new Rotator with a maximum file size of 2MB and 15 rotated files are to be kept on disk
+	// this creates a new Rotator with a maximum file size of 2KB and 15 rotated files are to be kept on disk
 	// logrus DOES take care of thread-safe writes, so supply 'false' as last parameter to avoid unnecessary overhead
-	rotator, _ := logrotator.New(".", "logrus-test.log", 2<<20, 0644, 15, false)
+	rotator, err := rotator.New(".", "logrus-logger.log", 2<<10, 0644, 15, false)
+	if err != nil {
+		log.Fatal("could not create rotator:", err.Error())
+	}
 
 	logger := logrus.New()
 	logger.SetOutput(rotator) // use the rotator here
@@ -101,7 +108,6 @@ func main() {
 	// done? then close up
 	_ = rotator.Close()
 
-	// the log file 'logrus-test.log' should contain 300 entries by now
+	// you should see 16 files by now
 }
-
 ```

@@ -9,7 +9,7 @@ import (
 func Benchmark_Rotator_Write(b *testing.B) {
 	filename := "rotator_temp"
 
-	rotator, err := New(".", filename, 10<<30, 0644, 10)
+	rotator, err := New(".", filename, 10<<30, 0644, 10, false)
 	if err != nil {
 		b.Fatalf("could not create new rotator: %s", err.Error())
 	}

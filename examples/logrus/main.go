@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"sync"
 
 	rotator "github.com/KaiserWerk/go-log-rotator"
@@ -9,9 +10,12 @@ import (
 )
 
 func main() {
-	// this creates a new Rotator with a maximum file size of 2MB and 15 rotated files are to be kept on disk
+	// this creates a new Rotator with a maximum file size of 2KB and 15 rotated files are to be kept on disk
 	// logrus DOES take care of thread-safe writes, so supply 'false' as last parameter to avoid unnecessary overhead
-	rotator, _ := rotator.New(".", "logrus-test.log", 2<<20, 0644, 15, false)
+	rotator, err := rotator.New(".", "logrus-logger.log", 2<<10, 0644, 15, false)
+	if err != nil {
+		log.Fatal("could not create rotator:", err.Error())
+	}
 
 	logger := logrus.New()
 	logger.SetOutput(rotator) // use the rotator here
@@ -43,5 +47,5 @@ func main() {
 	// done? then close up
 	_ = rotator.Close()
 
-	// the log file 'logrus-test.log' should contain 300 entries by now
+	// you should see 16 files by now
 }
