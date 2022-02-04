@@ -1,5 +1,7 @@
 # Go Log Rotator
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/KaiserWerk/go-log-rotator.svg)](https://pkg.go.dev/github.com/KaiserWerk/go-log-rotator)
+
 The Log Rotator provides a simple io.WriteCloser to be used as output for your logger of choice.
 
 ### Usage examples (refer to examples folder)
